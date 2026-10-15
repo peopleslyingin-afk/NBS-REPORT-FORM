@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Newborn Screening Monthly Summary Logbook</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } };
+</script>
+<style>
+body { font-family: Inter, sans-serif; }
+.table-input { width:100%; min-width:48px; padding:.35rem .2rem; text-align:center; background:transparent; border:1px solid transparent; border-radius:.25rem; font-size:.8rem; }
+.table-input:hover { border-color:#cbd5e1; background:#f8fafc; }
+.table-input:focus { outline:none; border-color:#2563eb; background:white; box-shadow:0 0 0 2px #2563eb22; }
+.line-input { width:100%; border-bottom:1px solid #cbd5e1; padding:.2rem .4rem; outline:none; background:transparent; }
+.line-input:focus { border-color:#2563eb; }
+.signature-preview { display:none; max-width:190px; max-height:64px; width:auto; height:auto; object-fit:contain; margin:0 auto 4px; }
+.signature-preview.has-image { display:block; }
+@media print {
+ @page { size:landscape; margin:10mm; }
+ body { background:white!important; padding:0!important; font-size:8pt!important; }
+ .no-print,.signature-upload-controls { display:none!important; }
+ .print-container { max-width:none!important; border:0!important; box-shadow:none!important; padding:0!important; margin:0!important; }
+ table { border-collapse:collapse!important; width:100%!important; }
+ th,td { border:1px solid #000!important; padding:2px!important; font-size:7pt!important; color:#000!important; }
+ .table-input { border:0!important; font-size:7pt!important; }
+ .signature-preview.has-image { display:block!important; }
+}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen p-3 sm:p-6">
+<div class="no-print max-w-[1400px] mx-auto mb-5 bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+  <div class="flex items-center gap-3">
+    <div class="p-2.5 bg-blue-600 text-white rounded-lg"><i data-lucide="file-spreadsheet" class="w-6 h-6"></i></div>
+    <div><h1 class="text-lg font-bold">NBS Monthly Summary Logbook</h1><p class="text-xs text-slate-500">Official Health Facility Reporting Form</p></div>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <button type="button" onclick="clearAllData()" class="px-3 py-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">Clear / Reset All</button>
+    <button type="button" onclick="saveToLocalStorage()" class="px-3 py-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg">Save Progress</button>
+    <button type="button" onclick="exportToCSV()" class="px-3 py-2 text-xs bg-slate-100 border rounded-lg">Export CSV</button>
+    <button type="button" onclick="window.print()" class="px-3 py-2 text-xs bg-slate-100 border rounded-lg">Print / Save PDF</button>
+    <button type="button" class="submit-button px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg" onclick="submitReport()">Submit Report</button>
+  </div>
+</div>
+
+<main class="print-container max-w-[1400px] mx-auto bg-white p-5 sm:p-8 rounded-xl shadow-sm border border-slate-200 space-y-5">
+  <div class="flex flex-col sm:flex-row justify-between items-center border-b pb-4 gap-3">
+    <div class="text-xs font-bold text-slate-700">ANNEX A. NBS REPORTING FORM</div>
+    <div class="text-center">
+      <div class="text-[10px] text-slate-500 uppercase">Republic of the Philippines</div>
+      <div class="text-xs font-semibold uppercase">Department of Health</div>
+      <div class="text-sm font-extrabold text-blue-900">METRO MANILA CENTER FOR HEALTH DEVELOPMENT</div>
+      <div class="text-[11px] text-slate-600">Mandaluyong City</div>
+    </div>
+    <div class="hidden sm:block w-24"></div>
+  </div>
+
+  <section class="space-y-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 max-w-5xl text-sm">
+      <label class="flex items-center gap-2"><span class="font-semibold w-44 shrink-0">Hospital / Facility Code:</span><input id="facilityCode" class="line-input"></label>
+      <label class="flex items-center gap-2"><span class="font-semibold w-44 shrink-0">Name of Health Facility:</span><input id="facilityName" class="line-input" required></label>
+      <label class="flex items-center gap-2 md:col-span-2"><span class="font-semibold w-44 shrink-0">Address:</span><input id="facilityAddress" class="line-input"></label>
+      <label class="flex items-center gap-2 md:col-span-2"><span class="font-semibold w-44 shrink-0">Contact Number/s:</span><input id="contactNumbers" class="line-input"></label>
+      <label class="flex items-center gap-2 md:col-span-2"><span class="font-semibold w-44 shrink-0">Name of NBS Coordinator:</span><input id="nbsCoordinator" class="line-input"></label>
+    </div>
+    <div class="flex justify-center items-center gap-2 text-sm font-bold">YEAR: <input id="reportingYear" class="line-input max-w-28 text-center" inputmode="numeric" maxlength="4" placeholder="YYYY" required></div>
+  </section>
+
+  <div class="overflow-x-auto border border-slate-300 rounded-lg">
+    <table class="w-full text-xs border-collapse min-w-[1100px]">
+      <thead>
+        <tr class="bg-slate-100 font-bold text-center">
+          <th rowspan="2" class="p-2 border">Month</th><th rowspan="2" class="p-2 border">Total No. of Deliveries</th><th rowspan="2" class="p-2 border">Total No. of Live Births</th><th rowspan="2" class="p-2 border">Total No. of Refusal/Referral</th>
+          <th colspan="2" class="p-2 border">SCREENED</th><th rowspan="2" class="p-2 border bg-blue-50">Total Screened</th><th colspan="4" class="p-2 border">PATIENT RECALL</th>
+          <th rowspan="2" class="p-2 border">No. Returned for repeat NBS</th><th rowspan="2" class="p-2 border">No. referred for confirmatory test</th><th rowspan="2" class="p-2 border">No. Lost to Follow-up</th>
+        </tr>
+        <tr class="bg-slate-100 font-bold text-center">
+          <th class="p-2 border">Inborn</th><th class="p-2 border">Outborn</th><th class="p-2 border">No. Unfit/Unsat Sample</th><th class="p-2 border">No. Recalled</th><th class="p-2 border">No. of Positive Result</th><th class="p-2 border">No. Recalled</th>
+        </tr>
+      </thead>
+      <tbody id="logbookTableBody"></tbody>
+      <tfoot><tr class="bg-slate-200 font-bold text-center" id="totalsRow"></tr></tfoot>
+    </table>
+  </div>
+  <p class="text-xs italic text-slate-600">NOTE: Refused parents of babies must sign a written refusal form.</p>
+
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-3">
+    <div class="space-y-5 text-sm">
+      <div class="signatory">
+        <div class="font-semibold mb-1">Prepared by:</div>
+        <img id="preparedBySignaturePreview" class="signature-preview" alt="Prepared by signature">
+        <div class="signature-upload-controls no-print flex justify-center gap-2 mb-1">
+          <input type="file" id="preparedBySignatureFile" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="uploadSignature('preparedBy',this)">
+          <button type="button" onclick="document.getElementById('preparedBySignatureFile').click()" class="px-2 py-1 text-xs text-blue-700 bg-blue-50 border rounded">Upload E-Signature</button>
+          <button type="button" onclick="removeSignature('preparedBy')" class="px-2 py-1 text-xs text-rose-700 bg-rose-50 border rounded">Remove</button>
+        </div>
+        <input id="preparedBy" class="line-input text-center" placeholder="Signature Over Printed Name">
+        <label class="block mt-2">Designation:<input id="preparedByDesignation" class="line-input"></label>
+      </div>
+      <div class="signatory">
+        <div class="font-semibold mb-1">Noted by:</div>
+        <img id="notedBySignaturePreview" class="signature-preview" alt="Noted by signature">
+        <div class="signature-upload-controls no-print flex justify-center gap-2 mb-1">
+          <input type="file" id="notedBySignatureFile" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="uploadSignature('notedBy',this)">
+          <button type="button" onclick="document.getElementById('notedBySignatureFile').click()" class="px-2 py-1 text-xs text-blue-700 bg-blue-50 border rounded">Upload E-Signature</button>
+          <button type="button" onclick="removeSignature('notedBy')" class="px-2 py-1 text-xs text-rose-700 bg-rose-50 border rounded">Remove</button>
+        </div>
+        <input id="notedBy" class="line-input text-center" placeholder="Signature Over Printed Name">
+        <label class="block mt-2">Designation:<input id="notedByDesignation" class="line-input"></label>
+      </div>
+      <div class="signatory">
+        <div class="font-semibold mb-1">Approved by:</div>
+        <img id="approvedBySignaturePreview" class="signature-preview" alt="Approved by signature">
+        <div class="signature-upload-controls no-print flex justify-center gap-2 mb-1">
+          <input type="file" id="approvedBySignatureFile" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="uploadSignature('approvedBy',this)">
+          <button type="button" onclick="document.getElementById('approvedBySignatureFile').click()" class="px-2 py-1 text-xs text-blue-700 bg-blue-50 border rounded">Upload E-Signature</button>
+          <button type="button" onclick="removeSignature('approvedBy')" class="px-2 py-1 text-xs text-rose-700 bg-rose-50 border rounded">Remove</button>
+        </div>
+        <input id="approvedBy" class="line-input text-center" placeholder="Signature Over Printed Name">
+        <label class="block mt-2">Designation:<input id="approvedByDesignation" class="line-input"></label>
+      </div>
+    </div>
+    <div class="space-y-4">
+      <div class="border rounded-lg p-3 bg-slate-50">
+        <h3 class="font-bold text-sm mb-2">Reasons for refusal/Referral:</h3>
+        <div id="reasonsList" class="space-y-2"></div>
+      </div>
+      <div class="border rounded-lg p-3 bg-slate-50">
+        <h3 class="font-bold text-sm mb-2">Specify positive result:</h3>
+        <div id="positiveList" class="space-y-2"></div>
+      </div>
+    </div>
+  </section>
+  <div class="no-print pt-5 border-t flex justify-end">
+    <button type="button" class="submit-button px-6 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow" onclick="submitReport()">Submit Final Report</button>
+  </div>
+</main>
+
+<div id="toast" role="status" aria-live="polite" class="no-print fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl opacity-0 pointer-events-none transition-opacity"></div>
+
+<script>
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const COLUMNS = ["deliveries","liveBirths","refusal","inborn","outborn","unfit","recalled1","positive","recalled2","repeat","confirmatory","lost"];
+const SIGNATURE_IDS = ["preparedBy","notedBy","approvedBy"];
+const STORAGE_KEY = "nbs_summary_logbook_data";
+const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2bQ9znUpQX4QDHlmmfFDuBqAn2LXhO5IXH7HYh7jbPth0z1iuEsjw0hN9IDG3qqp9/exec";
+let reportSubmitting = false;
+let toastTimer;
+
+function initTable() {
+  const tbody = document.getElementById("logbookTableBody");
+  tbody.innerHTML = "";
+  MONTHS.forEach((month, idx) => {
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-slate-50";
+    const monthCell = document.createElement("td");
+    monthCell.className = "p-2 border text-center font-medium";
+    monthCell.textContent = month;
+    tr.appendChild(monthCell);
+    const allCols = ["deliveries","liveBirths","refusal","inborn","outborn","screened","unfit","recalled1","positive","recalled2","repeat","confirmatory","lost"];
+    allCols.forEach(col => {
+      const td = document.createElement("td");
+      td.className = "border p-0 text-center";
+      if (col === "screened") {
+        td.id = `screened_${idx}`;
+        td.className += " bg-blue-50 font-bold p-2";
+        td.textContent = "0";
+      } else {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.step = "1";
+        input.id = `${col}_${idx}`;
+        input.className = "table-input";
+        input.setAttribute("aria-label", `${month} ${col}`);
+        input.addEventListener("input", calculateTotals);
+        td.appendChild(input);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  const totalsRow = document.getElementById("totalsRow");
+  const allCols = ["deliveries","liveBirths","refusal","inborn","outborn","screened","unfit","recalled1","positive","recalled2","repeat","confirmatory","lost"];
+  totalsRow.innerHTML = "";
+  const label = document.createElement("td");
+  label.className = "p-2 border";
+  label.textContent = "TOTAL";
+  totalsRow.appendChild(label);
+  allCols.forEach(col => {
+    const td = document.createElement("td");
+    td.id = `tot-${col}`;
+    td.className = "p-2 border text-center";
+    td.textContent = "0";
+    totalsRow.appendChild(td);
+  });
+  ["reasonsList","positiveList"].forEach((id, listIndex) => {
+    const container = document.getElementById(id);
+    for (let i = 1; i <= 5; i++) {
+      const row = document.createElement("label");
+      row.className = "flex items-center gap-2 text-xs";
+      const number = document.createElement("span");
+      number.textContent = i + ".";
+      const input = document.createElement("input");
+      input.id = (listIndex === 0 ? "reason" : "positive") + i;
+      input.className = "line-input";
+      row.append(number, input);
+      container.appendChild(row);
+    }
+  });
+}
+
+function numberValue(id) {
+  const el = document.getElementById(id);
+  return el && el.value !== "" ? Math.max(0, Number(el.value) || 0) : 0;
+}
+
+function calculateTotals() {
+  const allCols = ["deliveries","liveBirths","refusal","inborn","outborn","screened","unfit","recalled1","positive","recalled2","repeat","confirmatory","lost"];
+  const totals = Object.fromEntries(allCols.map(col => [col, 0]));
+  MONTHS.forEach((month, idx) => {
+    const screened = numberValue(`inborn_${idx}`) + numberValue(`outborn_${idx}`);
+    document.getElementById(`screened_${idx}`).textContent = screened;
+    allCols.forEach(col => {
+      const value = col === "screened" ? screened : numberValue(`${col}_${idx}`);
+      totals[col] += value;
+    });
+  });
+  allCols.forEach(col => document.getElementById(`tot-${col}`).textContent = totals[col]);
+}
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.remove("opacity-0");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.add("opacity-0"), 3500);
+}
+
+function compressImage(dataUrl, maxDimension = 900, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+async function uploadSignature(id, input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!["image/png","image/jpeg","image/webp"].includes(file.type)) {
+    alert("Please choose a PNG, JPG, or WEBP signature image.");
+    input.value = "";
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Please choose an image smaller than 5 MB.");
+    input.value = "";
+    return;
+  }
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const compressed = await compressImage(dataUrl);
+    const preview = document.getElementById(id + "SignaturePreview");
+    preview.src = compressed;
+    preview.classList.add("has-image");
+    saveToLocalStorage(false);
+    showToast("E-signature uploaded.");
+  } catch (error) {
+    console.error(error);
+    alert("The signature image could not be read. Please try another image.");
+  }
+}
+
+function removeSignature(id) {
+  const preview = document.getElementById(id + "SignaturePreview");
+  preview.removeAttribute("src");
+  preview.classList.remove("has-image");
+  const fileInput = document.getElementById(id + "SignatureFile");
+  if (fileInput) fileInput.value = "";
+  saveToLocalStorage(false);
+  showToast("E-signature removed.");
+}
+
+function collectReportForSheets() {
+  const data = {
+    submissionTimestamp: new Date().toISOString(),
+    facilityCode: document.getElementById("facilityCode").value.trim(),
+    facilityName: document.getElementById("facilityName").value.trim(),
+    facilityAddress: document.getElementById("facilityAddress").value.trim(),
+    contactNumbers: document.getElementById("contactNumbers").value.trim(),
+    nbsCoordinator: document.getElementById("nbsCoordinator").value.trim(),
+    reportingYear: document.getElementById("reportingYear").value.trim()
+  };
+  SIGNATURE_IDS.forEach(id => {
+    data[id] = document.getElementById(id).value.trim();
+    data[id + "Designation"] = document.getElementById(id + "Designation").value.trim();
+    const preview = document.getElementById(id + "SignaturePreview");
+    data[id + "SignatureImage"] = preview.classList.contains("has-image") ? preview.src : "";
+  });
+  MONTHS.forEach((month, idx) => {
+    COLUMNS.forEach(col => data[month + "_" + col] = numberValue(`${col}_${idx}`));
+    data[month + "_screened"] = numberValue(`inborn_${idx}`) + numberValue(`outborn_${idx}`);
+  });
+  ["deliveries","liveBirths","refusal","inborn","outborn","screened","unfit","recalled1","positive","recalled2","repeat","confirmatory","lost"].forEach(col => {
+    data["total_" + col] = Number(document.getElementById("tot-" + col).textContent) || 0;
+  });
+  for (let i = 1; i <= 5; i++) {
+    data["reason" + i] = document.getElementById("reason" + i).value.trim();
+    data["positive" + i] = document.getElementById("positive" + i).value.trim();
+  }
+  return data;
+}
+
+function saveToLocalStorage(showMessage = true) {
+  const data = {};
+  document.querySelectorAll("input[id]").forEach(input => {
+    if (input.type !== "file") data[input.id] = input.value;
+  });
+  SIGNATURE_IDS.forEach(id => {
+    const preview = document.getElementById(id + "SignaturePreview");
+    if (preview && preview.classList.contains("has-image")) data[id + "SignatureImage"] = preview.src;
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (showMessage) showToast("Progress saved in this browser.");
+  } catch (error) {
+    alert("The draft could not be saved in browser storage. Try using smaller signature images.");
+  }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    Object.entries(saved).forEach(([id, value]) => {
+      if (id.endsWith("SignatureImage")) {
+        const baseId = id.slice(0, -"SignatureImage".length);
+        const preview = document.getElementById(baseId + "SignaturePreview");
+        if (preview && value) {
+          preview.src = value;
+          preview.classList.add("has-image");
+        }
+      } else {
+        const el = document.getElementById(id);
+        if (el && el.type !== "file") el.value = value;
+      }
+    });
+    calculateTotals();
+  } catch (error) {
+    console.error("Could not restore saved draft:", error);
+  }
+}
+
+async function submitReport() {
+  if (reportSubmitting) return;
+  const facility = document.getElementById("facilityName").value.trim();
+  const year = document.getElementById("reportingYear").value.trim();
+  if (!facility || !year) {
+    alert("Please fill in the Name of Health Facility and YEAR before submitting.");
+    return;
+  }
+  if (!/^\d{4}$/.test(year)) {
+    alert("Please enter the reporting year as four digits, for example 2026.");
+    return;
+  }
+  if (!confirm("Submit this report? A new report tab should be created in Google Sheets.")) return;
+
+  reportSubmitting = true;
+  const buttons = document.querySelectorAll(".submit-button");
+  buttons.forEach(button => {
+    button.disabled = true;
+    button.dataset.originalText = button.textContent;
+    button.textContent = "Submitting...";
+    button.classList.add("opacity-50", "cursor-not-allowed");
+  });
+
+  try {
+    saveToLocalStorage(false);
+    const payload = { action: "submitNbsReport", report: collectReportForSheets() };
+    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    showToast("Request sent. Verify the new tab in Google Sheets before retrying.");
+    alert("The submission request was sent. Because this page uses no-cors mode, it cannot verify Google's response. Check your Google spreadsheet for the new report tab before submitting again.");
+  } catch (error) {
+    console.error("Submission failed:", error);
+    alert("The request could not be sent. Your draft remains saved in this browser. Check your connection and try again.");
+  } finally {
+    reportSubmitting = false;
+    buttons.forEach(button => {
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || "Submit Report";
+      button.classList.remove("opacity-50", "cursor-not-allowed");
+    });
+  }
+}
+
+function csvEscape(value) {
+  const text = String(value ?? "");
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function exportToCSV() {
+  const rows = [
+    ["ANNEX A. NBS REPORTING FORM"],
+    ["Facility Code", document.getElementById("facilityCode").value],
+    ["Health Facility", document.getElementById("facilityName").value],
+    ["Address", document.getElementById("facilityAddress").value],
+    ["Contact Number/s", document.getElementById("contactNumbers").value],
+    ["NBS Coordinator", document.getElementById("nbsCoordinator").value],
+    ["Year", document.getElementById("reportingYear").value],
+    [],
+    ["Month","Deliveries","Live Births","Refusal/Referral","Inborn","Outborn","Total Screened","Unfit/Unsat","Recalled 1","Positive","Recalled 2","Repeat NBS","Confirmatory","Lost to Follow-up"]
+  ];
+  MONTHS.forEach((month, idx) => {
+    rows.push([month, numberValue(`deliveries_${idx}`), numberValue(`liveBirths_${idx}`), numberValue(`refusal_${idx}`), numberValue(`inborn_${idx}`), numberValue(`outborn_${idx}`), numberValue(`inborn_${idx}`)+numberValue(`outborn_${idx}`), numberValue(`unfit_${idx}`), numberValue(`recalled1_${idx}`), numberValue(`positive_${idx}`), numberValue(`recalled2_${idx}`), numberValue(`repeat_${idx}`), numberValue(`confirmatory_${idx}`), numberValue(`lost_${idx}`)]);
+  });
+  rows.push(["TOTAL", ...["deliveries","liveBirths","refusal","inborn","outborn","screened","unfit","recalled1","positive","recalled2","repeat","confirmatory","lost"].map(col => document.getElementById("tot-"+col).textContent)]);
+  const csv = "\uFEFF" + rows.map(row => row.map(csvEscape).join(",")).join("\r\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `NBS_Logbook_${document.getElementById("reportingYear").value || "Report"}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast("CSV exported.");
+}
+
+function clearAllData() {
+  if (!confirm("Clear all form fields and saved draft from this browser? This cannot delete reports already submitted to Google Sheets.")) return;
+  document.querySelectorAll("input[id]").forEach(input => {
+    if (input.type !== "file") input.value = "";
+  });
+  SIGNATURE_IDS.forEach(id => {
+    const preview = document.getElementById(id + "SignaturePreview");
+    preview.removeAttribute("src");
+    preview.classList.remove("has-image");
+    document.getElementById(id + "SignatureFile").value = "";
+  });
+  calculateTotals();
+  localStorage.removeItem(STORAGE_KEY);
+  showToast("Form cleared.");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  initTable();
+  loadFromLocalStorage();
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+</body>
+</html>
